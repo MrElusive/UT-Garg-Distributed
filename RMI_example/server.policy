@@ -1,0 +1,3 @@
+grant codeBase "file:/Users/wlhung/RMI_example/" {
+    permission java.security.AllPermission;
+};
