@@ -2,7 +2,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-
+// Encapsulates all the logic of parsing and validating a command string entered at the command prompt.
+// Example usage:
+//      String commandString = getCommandStringFromUserInput();
+//      CommandParser.Command command = CommandParser.parseCommand(commandString);
+//      CommandParser.CommandType commandType = command.getCommandType()
+//      List<String> arguments = command.getArguments();
+//      Protocol protocol = command.getProtocol();
+// If the command string is improperly formatted, an InvalidCommandException will be thrown with an appropriate message.
 public class CommandParser {
 	
 	public static class InvalidCommandException extends Exception {
@@ -11,30 +18,37 @@ public class CommandParser {
 
 		public InvalidCommandException(String message) {
 			super(message);
-		}
-		
+		}		
 	}
 	
 	public static Command parseCommand(String commandString) throws InvalidCommandException {
+	    // Check to see that we have at least the minimum number of tokens
 		String[] tokens = commandString.split(" ");
 		if (tokens.length < 2) { // Every commandString must have at least two tokens: "commandType protocol"
 			throw new InvalidCommandException("Error: the command string must contain at least two tokens.");
 		}
 		
+		// Parse out the command type, e.g. reserve -> CommandType.RESERVE, bookSeat -> CommandType.BOOKSEAT
+		// @TODO: Determine if the TA cares about case sensitivity for the commands
 		String commandTypeString = tokens[0].trim();
 		Command.CommandType commandType = null;
 		try {
-			commandType = Command.CommandType.valueOf(commandTypeString);
+			commandType = Command.CommandType.valueOf(commandTypeString.toUpperCase());
 		} catch (IllegalArgumentException e) {
 			throw new InvalidCommandException(String.format("Error: unrecognized command type: %s", commandTypeString));
 		}
 		
+		// Parse out the arguments and validate them according to the format strings in the CommandType from above
+		// For example, CommandType.BOOKSEAT expects arguments that match the following format (regex) strings: "\\w+", "\\d+".
+		//      "\\w+" corresponds to a string of characters
+		//      "\\d+" corresponds to a string of digits
 		List<String> arguments = new ArrayList<String>();
 		for (int i = 1; i < tokens.length - 1; i++) {
 			arguments.add(tokens[i].trim());
 		}
 		commandType.validateArguments(arguments);
 		
+		// Parse out the protocol
         String protocolString = tokens[tokens.length - 1].trim();
         Protocol protocol = null;
         if ("T".equals(protocolString)) {
@@ -49,14 +63,16 @@ public class CommandParser {
 		return new Command(commandType, arguments, protocol);
 	}
 	
+	// This class is just a POJO. All the work of parsing/validating is done in the CommandParser class.
 	public static class Command {
 		
+		// Each CommandType stores a list of format (regex) strings that can be used to validate a list of string arguments (see validateArguments())
 		public enum CommandType {
 			RESERVE("\\w+"),
 			BOOKSEAT("\\w+", "\\d+"),
 			SEARCH("\\w+"),
 			DELETE("\\w+"),
-			CLOSE();
+			SHUTDOWN();
 			
 			private List<String> argumentFormatStrings;
 			
@@ -118,8 +134,8 @@ public class CommandParser {
 			return protocol;
 		}
 
-		public boolean isCloseCommand() {
-			return commandType == CommandType.CLOSE;
+		public boolean isShutdownCommand() {
+			return commandType == CommandType.SHUTDOWN;
 		}
 	}
 }
